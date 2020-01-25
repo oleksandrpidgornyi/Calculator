@@ -292,7 +292,7 @@ int CCalculator::Run(bool test)
         cout << COLOR_YELLOW_TEXT "Type expression with '=' at the end to calculate," COLOR_END << endl;
         cout << COLOR_YELLOW_TEXT "or press 'Enter' to exit." COLOR_END << endl << endl;
     }
-    int i = 0;
+    unsigned int i = 0;
     while (1) {
         string expr;
         if (test) {

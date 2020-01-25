@@ -1,18 +1,14 @@
 // Calc.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
-
-#ifdef _WIN32
-#include <windows.h>
-#endif //_WIN32
-
 #include <iostream>
+#include <string>
 #include <string.h>
-
 #include "CCalculator.h"
 #include "CLogger.h"
 
 #ifdef _WIN32
+#include <windows.h>
+
 class CColorConsole {
 private:
 	void* hStdout;

@@ -118,6 +118,9 @@ private:
     int TextFormatter(char buffer[LOG_STR_LEN], int level, const char* file, const char* function, int line);
     int ColorTextFormatter(char buffer[LOG_STR_LEN], int level, const char* file, const char* function, int line);
     int ExcelFormatter(char buffer[LOG_STR_LEN], int level, const char* file, const char* function, int line);
+    int printTime(char buffer[LOG_STR_LEN], int len);
+    int printThreadID(char buffer[LOG_STR_LEN], int len);
+    int printProcessID(char buffer[LOG_STR_LEN], int len);
 };
 
 bool CheckLevelMask(uint32_t mask);

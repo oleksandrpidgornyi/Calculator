@@ -2,10 +2,15 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else //_WIN32
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #endif //_WIN32
 
 #include <cstdarg>
-
+#include <chrono>
 #include <stdio.h>
 #include <ctype.h>
 
@@ -27,8 +32,8 @@ void LogInitConsole(LOG_FORMATTER formatter)
 void LogInitColorConsole()
 {
     CLogger::GetInstance().AddWriter(dynamic_cast<CLogWriter*>(new CConsoleWriter));
-    CLogger::GetInstance().SetLevelMask(LOG_ALL_LEVELS);
     CLogger::GetInstance().SetFormatMask(LOG_FUNC_MAME | LOG_LINE_NUM | LOG_LOG_NUM);
+    CLogger::GetInstance().SetFormatMask(LOG_ALL_COLUMNS);
     CLogger::GetInstance().SetFormatter(LOG_FORMATTER::COLORTEXT);
 }
 
@@ -99,6 +104,47 @@ void CLogger::Log(int level, const char* file, const char* function, int line, c
     va_end(args);
 }
 
+int CLogger::printTime(char buffer[LOG_STR_LEN], int len)
+{
+#ifdef _WIN32
+	SYSTEMTIME time;
+	GetSystemTime(&time);
+	len += snprintf(buffer + len, LOG_STR_LEN, "%02d:%02d:%02d:%04d ",
+		time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+#else //_WIN32
+	struct timeval tv;
+	struct tm *tm;
+	gettimeofday(&tv, NULL);
+	tm=localtime(&tv.tv_sec);
+	int32_t ms = (tv.tv_usec / 1000);
+	len += snprintf(buffer + len, LOG_STR_LEN, "%02d:%02d:%02d:%04d ",
+			tm->tm_hour, tm->tm_min, tm->tm_sec, ms);
+#endif //_WIN32
+    return len;
+}
+
+int CLogger::printThreadID(char buffer[LOG_STR_LEN], int len)
+{
+#ifdef _WIN32
+    DWORD tid = GetCurrentThreadId();
+#else //_WIN32
+    pid_t tid = syscall(SYS_gettid);
+#endif //_WIN32
+    len += snprintf(buffer + len, LOG_STR_LEN, "tid:%d ", tid);
+    return len;
+}
+
+int CLogger::printProcessID(char buffer[LOG_STR_LEN], int len)
+{
+#ifdef _WIN32
+    DWORD pid = GetProcessId(GetCurrentProcess());
+#else //_WIN32
+    pid_t pid = getpid();
+#endif //_WIN32
+    len += snprintf(buffer + len, LOG_STR_LEN, "pid:%d ", pid);
+    return len;
+}
+
 int CLogger::TextFormatter(char buffer[LOG_STR_LEN], int level, const char* file, const char* function, int line)
 {
     int len = 0;
@@ -106,24 +152,13 @@ int CLogger::TextFormatter(char buffer[LOG_STR_LEN], int level, const char* file
         len += snprintf(buffer + len, LOG_STR_LEN, "%d ", CLogger::m_line_num++);
     }
     if (CLogger::m_format_mask & LOG_TIME_STAMP) {
-#ifdef _WIN32
-        SYSTEMTIME time;
-        GetSystemTime(&time);
-        len += snprintf(buffer + len, LOG_STR_LEN, "%02d:%02d:%02d:%04d ",
-            time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
-#endif //_WIN32
+    	len = printTime(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_PROC_ID) {
-#ifdef _WIN32
-        DWORD pid = GetProcessId(GetCurrentProcess());
-        len += snprintf(buffer + len, LOG_STR_LEN, "pid:%d ", pid);
-#endif //_WIN32
+    	len = printProcessID(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_THREAD_ID) {
-#ifdef _WIN32
-        DWORD tid = GetCurrentThreadId();
-        len += snprintf(buffer + len, LOG_STR_LEN, "tid:%d ", tid);
-#endif //_WIN32
+    	len = printThreadID(buffer, len);
     }
     switch (level) {
     case LOG_TRACE:
@@ -169,24 +204,13 @@ int CLogger::ColorTextFormatter(char buffer[LOG_STR_LEN], int level, const char*
         len += snprintf(buffer + len, LOG_STR_LEN, COLOR_BLUE_TEXT "%d " COLOR_END, CLogger::m_line_num++);
     }
     if (CLogger::m_format_mask & LOG_TIME_STAMP) {
-#ifdef _WIN32
-        SYSTEMTIME time;
-        GetSystemTime(&time);
-        len += snprintf(buffer + len, LOG_STR_LEN, COLOR_BLUE_TEXT "%02d:%02d:%02d:%04d " COLOR_END,
-            time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
-#endif //_WIN32
+    	len = printTime(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_PROC_ID) {
-#ifdef _WIN32
-        DWORD pid = GetProcessId(GetCurrentProcess());
-        len += snprintf(buffer + len, LOG_STR_LEN, COLOR_BLUE_TEXT "pid:%d " COLOR_END, pid);
-#endif //_WIN32
+    	len = printProcessID(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_THREAD_ID) {
-#ifdef _WIN32
-        DWORD tid = GetCurrentThreadId();
-        len += snprintf(buffer + len, LOG_STR_LEN, COLOR_BLUE_TEXT "tid:%d " COLOR_END, tid);
-#endif //_WIN32
+    	len = printThreadID(buffer, len);
     }
     switch (level) {
     case LOG_TRACE:
@@ -233,24 +257,13 @@ int CLogger::ExcelFormatter(char buffer[LOG_STR_LEN], int level, const char* fil
         len += snprintf(buffer + len, LOG_STR_LEN, "%d;", CLogger::m_line_num++);
     }
     if (CLogger::m_format_mask & LOG_TIME_STAMP) {
-#ifdef _WIN32
-        SYSTEMTIME time;
-        GetSystemTime(&time);
-        len += snprintf(buffer + len, LOG_STR_LEN, "%02d:%02d:%02d;%04d;",
-            time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
-#endif //_WIN32
+    	len = printTime(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_PROC_ID) {
-#ifdef _WIN32
-        DWORD pid = GetProcessId(GetCurrentProcess());
-        len += snprintf(buffer + len, LOG_STR_LEN, "pid:%d;", pid);
-#endif //_WIN32
+    	len = printProcessID(buffer, len);
     }
     if (CLogger::m_format_mask & LOG_THREAD_ID) {
-#ifdef _WIN32
-        DWORD tid = GetCurrentThreadId();
-        len += snprintf(buffer + len, LOG_STR_LEN, "tid:%d;", tid);
-#endif //_WIN32
+    	len = printThreadID(buffer, len);
     }
     switch (level) {
     case LOG_TRACE:
